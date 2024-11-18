@@ -14,7 +14,7 @@
             "email": "torgodly@gmail.com"
         }
     ],
-    "minimum-stability": "dev",
+    "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
         "filament/support": "^3.2"
@@ -25,5 +25,11 @@
                 "Torgodly\\Html2Media\\Html2MediaServiceProvider"
             ]
         }
-    }
+    },
+    "repositories": [
+        {
+            "type": "vcs",
+            "url": "https://github.com/torgodly/html2media"
+        }
+    ]
 }
