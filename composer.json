@@ -17,7 +17,8 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-         "filament/filament": "^3.0",
+        "php": "^8.1",
+        "filament/filament": "^3.0"
     },
     "extra": {
         "laravel": {
@@ -31,5 +32,16 @@
             "type": "vcs",
             "url": "https://github.com/torgodly/html2media"
         }
+    ],
+    "keywords": [
+        "laravel",
+        "pdf",
+        "html-to-pdf",
+        "filament",
+        "pdf-generation",
+        "reporting",
+        "invoice",
+        "documents",
+        "printing"
     ]
 }
