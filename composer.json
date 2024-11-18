@@ -1,0 +1,29 @@
+{
+    "name": "torgodly/html2media",
+    "description": "Html2Media is a versatile Laravel package that allows users to convert HTML content into high-quality PDFs with options for either downloading or triggering a print dialog. Ideal for generating documents, invoices, and reports, this package includes configurable settings for file name, page orientation, format, margins, and scale. Html2Media also provides seamless integration with Filament actions, enabling dynamic content rendering in modals and customizable output previews. Whether you need to save a PDF or send it directly to the printer, Html2Media simplifies the process with robust, flexible features.",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "Torgodly\\Html2Media\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Abdullah Alhaj",
+            "email": "torgodly@gmail.com"
+        }
+    ],
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "require": {
+        "filament/support": "^3.2"
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Torgodly\\Html2Media\\Html2MediaServiceProvider"
+            ]
+        }
+    }
+}
