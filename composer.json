@@ -17,7 +17,7 @@
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-        "filament/support": "^3.2"
+         "filament/filament": "^3.0",
     },
     "extra": {
         "laravel": {
