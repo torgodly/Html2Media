@@ -20,16 +20,28 @@ use Illuminate\Support\HtmlString;
 trait  HasHtml2MediaActionBase
 {
     protected View|Htmlable|Closure|null $content = null;
-    protected bool $preview = false;
-    protected bool $print = true;
-    protected bool $savePdf = false;
+    protected bool|Closure $preview = false;
+    protected bool|Closure $print = true;
+    protected bool|Closure $savePdf = false;
     protected string|Closure $filename = 'document.pdf';
     protected array|Closure $pagebreak = ['mode' => ['css', 'legacy'], 'after' => 'section'];
     protected string|Closure $orientation = 'portrait';  // Separate variable for orientation
     protected string|array|Closure $format = 'a4';  // Separate variable for format
     protected string|Closure $unit = 'mm';  // Separate variable for unit
     protected int|Closure $scale = 2;  // Separate variable for scale
-    protected int|Closure $margin = 0; // Margin setting
+    protected int|Closure|array $margin = 0; // Margin setting,
+    protected bool|Closure $enableLinks = false; // Enable links PDF hyperlinks are automatically added ontop of all anchor tags.
+
+    public function enableLinks(bool|Closure $enableLinks = true): static
+    {
+        $this->enableLinks = $enableLinks;
+        return $this;
+    }
+
+    public function isEnableLinks(): bool
+    {
+        return $this->evaluate($this->enableLinks);
+    }
 
     public function filename(string|Closure $filename = 'document'): static
     {
@@ -39,16 +51,23 @@ trait  HasHtml2MediaActionBase
 
     public function getFilename(): string
     {
-        return $this->evaluate($this->filename);
+        // Evaluate the filename (handle Closure if necessary)
+        $filename = $this->evaluate($this->filename);
+
+        // Extract the base name (remove all extensions)
+        $baseName = pathinfo($filename, PATHINFO_FILENAME);
+
+        // Return the cleaned filename with a single .pdf extension
+        return $baseName . '.pdf';
     }
 
-    public function pagebreak(string|Closure|null $after = 'section', array|Closure|null $mode = ['css', 'legacy'],): static
+    public function pagebreak(string|Closure|null $after = 'section', array|Closure|null $mode = ['css', 'legacy'], string|Closure|null $avoid = null): static
     {
-        $this->pagebreak = ['mode' => $mode, 'after' => $after];
+        $this->pagebreak = ['mode' => $mode, 'after' => $after, ...($avoid !== null ? ['avoid' => $avoid] : [])];
         return $this;
     }
 
-    public function getPagebreak(): array
+    public function getPageBreak(): array
     {
         return $this->evaluate($this->pagebreak);
     }
@@ -94,23 +113,22 @@ trait  HasHtml2MediaActionBase
         return $this->evaluate($this->scale);
     }
 
-// Getter for scale
 
     public
-    function margin(int|Closure|null $margin = 0): static
+    function margin(int|Closure|array|null $margin = 0): static
     {
         $this->margin = $margin;
         return $this;
     }
 
     public
-    function getMargin(): int
+    function getMargin(): int|array
     {
         return $this->evaluate($this->margin);
     }
 
     public
-    function print(bool $print = true): static
+    function print(bool|Closure $print = true): static
     {
         $this->print = $print;
 
@@ -119,10 +137,10 @@ trait  HasHtml2MediaActionBase
 
     public function isPrint(): bool
     {
-        return $this->print;
+        return $this->evaluate($this->print);
     }
 
-    public function savePdf(bool $savePdf = true): static
+    public function savePdf(bool|Closure $savePdf = true): static
     {
         $this->savePdf = $savePdf;
 
@@ -131,10 +149,10 @@ trait  HasHtml2MediaActionBase
 
     public function isSavePdf(): bool
     {
-        return $this->savePdf;
+        return $this->evaluate($this->savePdf);
     }
 
-    public function preview(bool $preview = true): static
+    public function preview(bool|Closure $preview = true): static
     {
         $this->preview = $preview;
         $this->modalContent(fn(MountableAction $action): ?Htmlable => $action->evaluate($preview) ? view('html2media::tables.actions.html-2-media-table-action', ['content' => $this->getContent()?->toHtml()]) : null);
@@ -193,55 +211,56 @@ trait  HasHtml2MediaActionBase
 
     public function getElementId(): string
     {
-        return $this->evaluate(fn($record) => $record->id);
+        return $this->evaluate(fn($record) => $record->id.'-'.$this->name);
     }
 
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->dispatch(
-            fn() => !$this->shouldOpenModal() ? 'triggerPrint' : null,
-            fn() => !$this->shouldOpenModal()
-                ? [
-                    'action' => $this->isSavePdf() ? 'savePdf' : ($this->isPrint() ? 'print' : null),
-                    'element' => $this->getElementId(),
-                    'filename' => $this->getFilename(),
-                    'pagebreak' => [
-                        'mode' => $this->getPagebreak(),
-                    ],
-                    'jsPDF' => [
-                        'orientation' => $this->getOrientation(),
-                        'format' => $this->getFormat(),
-                        'unit' => $this->getUnit(),
-                    ],
-                    'html2canvas' => [
-                        'scale' => $this->getScale(),
-                        'useCORS' => true, // Example setting if you want to include it
-                    ],
-                    'margin' => $this->getMargin(),
-                ]
-                : []
-        );
-
+        $this->action(fn($record, $livewire) => !$this->shouldOpenModal() ?: $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions()));
 
         $this->modalSubmitAction(false);
         $this->extraModalFooterActions([
 
 
             Action::make('SavePdf')
+                ->translateLabel()
                 ->visible(fn() => $this->isSavePdf())
                 ->label('Save as PDF')
-                ->dispatch('triggerPrint', fn() => ['action' => 'savePdf', 'element' => $this->getElementId()]),
+                ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('savePdf'))),
 
 
             Action::make('Print')
+                ->translateLabel()
                 ->visible(fn() => $this->isPrint())
                 ->label('Print')
-                ->dispatch('triggerPrint', fn() => ['action' => 'print', 'element' => $this->getElementId()])
+                ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('print'))),
 
         ]);
 
+    }
+
+    private function getDispatchOptions(string|null $action = null): array
+    {
+        return [
+            'action' => $action ?: ($this->isSavePdf() ? 'savePdf' : ($this->isPrint() ? 'print' : null)),
+            'element' => $this->getElementId(),
+            'filename' => $this->getFilename(),
+            'pagebreak' => [
+                'mode' => $this->getPageBreak(),
+            ],
+            'jsPDF' => [
+                'orientation' => $this->getOrientation(),
+                'format' => $this->getFormat(),
+                'unit' => $this->getUnit(),
+            ],
+            'html2canvas' => [
+                'scale' => $this->getScale(),
+                'useCORS' => true,
+            ],
+            'margin' => $this->getMargin(),
+            'enableLinks' => $this->isEnableLinks(),
+        ];
     }
 }
