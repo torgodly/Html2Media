@@ -218,7 +218,7 @@ trait  HasHtml2MediaActionBase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->action(fn($record, $livewire) => !$this->shouldOpenModal() ?: $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions()));
+        $this->action(fn($record, $livewire) => !$this->shouldOpenModal() ? $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions()) : null);
 
         $this->modalSubmitAction(false);
         $this->extraModalFooterActions([
@@ -244,7 +244,7 @@ trait  HasHtml2MediaActionBase
     private function getDispatchOptions(string|null $action = null): array
     {
         return [
-            'action' => $action ?: ($this->isSavePdf() ? 'savePdf' : ($this->isPrint() ? 'print' : null)),
+            'action' => $action ?? ($this->isSavePdf() ? 'savePdf' : ($this->isPrint() ? 'print' : null)),
             'element' => $this->getElementId(),
             'filename' => $this->getFilename(),
             'pagebreak' => [
