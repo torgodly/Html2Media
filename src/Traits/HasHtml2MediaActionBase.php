@@ -214,6 +214,23 @@ trait  HasHtml2MediaActionBase
         return $this->evaluate(fn($record) => $record->id.'-'.$this->name);
     }
 
+    public function savePdfAction(): Action
+    {
+        return Action::make('SavePdf')
+            ->translateLabel()
+            ->visible(fn() => $this->isSavePdf())
+            ->label('Save as PDF')
+            ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('savePdf')));
+    }
+
+    public function printAction(): Action
+    {
+        return Action::make('Print')
+            ->translateLabel()
+            ->visible(fn() => $this->isPrint())
+            ->label('Print')
+            ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('print')));
+    }
 
     protected function setUp(): void
     {
@@ -223,19 +240,8 @@ trait  HasHtml2MediaActionBase
         $this->modalSubmitAction(false);
         $this->extraModalFooterActions([
 
-
-            Action::make('SavePdf')
-                ->translateLabel()
-                ->visible(fn() => $this->isSavePdf())
-                ->label('Save as PDF')
-                ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('savePdf'))),
-
-
-            Action::make('Print')
-                ->translateLabel()
-                ->visible(fn() => $this->isPrint())
-                ->label('Print')
-                ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('print'))),
+            $this->savePdfAction(),
+            $this->printAction(),
 
         ]);
 
