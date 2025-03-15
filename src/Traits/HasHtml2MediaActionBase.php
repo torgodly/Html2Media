@@ -31,6 +31,7 @@ trait  HasHtml2MediaActionBase
     protected int|Closure $scale = 2;  // Separate variable for scale
     protected int|Closure|array $margin = 0; // Margin setting,
     protected bool|Closure $enableLinks = false; // Enable links PDF hyperlinks are automatically added ontop of all anchor tags.
+    protected null|string|Closure $elementId = null;
 
     public function enableLinks(bool|Closure $enableLinks = true): static
     {
@@ -211,7 +212,13 @@ trait  HasHtml2MediaActionBase
 
     public function getElementId(): string
     {
-        return $this->evaluate(fn($record) => $record->id.'-'.$this->name);
+        return $this->evaluate($this->elementId) ?? $this->evaluate(fn($record) => $record->id . '-' . $this->name);
+    }
+
+    public function elementId(string|Closure $elementId = null): static
+    {
+        $this->elementId = $elementId;
+        return $this;
     }
 
     public function savePdfAction(): Action
