@@ -14,15 +14,19 @@ class Html2MediaServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('html2media')
-            ->hasViews();
+            ->hasViews()
+            ->hasAssets();
 
     }
 
-    public function packageBooted()
+    public function packageBooted(): void
     {
         FilamentAsset::register([
-            Js::make('html2pdf', 'https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js'),
-            Js::make('html2pdf-script', __DIR__ . '/../resources/js/html2pdf.js'),
+            Js::make('es6-promise-script', __DIR__ . '/../resources/js/es6-promise.min.js'),
+            Js::make('jspdf-script', __DIR__ . '/../resources/js/jspdf.umd.min.js'),
+            Js::make('html2canvas-script', __DIR__ . '/../resources/js/html2canvas.min.js'),
+            Js::make('html2pdf-lib', __DIR__ . '/../resources/js/html2pdf.min.js'),
+            Js::make('html2media-script', __DIR__ . '/../resources/js/html2media.js'),
         ], 'html2media');
     }
 }
