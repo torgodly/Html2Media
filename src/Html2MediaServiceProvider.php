@@ -22,11 +22,10 @@ class Html2MediaServiceProvider extends PackageServiceProvider
     public function packageBooted(): void
     {
         FilamentAsset::register([
-            Js::make('es6-promise-script', __DIR__ . '/../resources/js/es6-promise.min.js'),
             Js::make('jspdf-script', __DIR__ . '/../resources/js/jspdf.umd.min.js'),
-            Js::make('html2canvas-script', __DIR__ . '/../resources/js/html2canvas.min.js'),
-            Js::make('html2pdf-lib', __DIR__ . '/../resources/js/html2pdf.min.js'),
-            Js::make('html2media-script', __DIR__ . '/../resources/js/html2media.js'),
+            Js::make('html2canvas-pro-script', __DIR__ . '/../resources/js/html2canvas-pro.min.js'),
+            Js::make('html2media', __DIR__ . '/../resources/js/html2media-main.js'),
+            Js::make('html2media-script', __DIR__ . '/../resources/js/html2media-script.js'),
         ], 'html2media');
     }
 }

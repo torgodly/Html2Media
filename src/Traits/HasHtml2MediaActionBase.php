@@ -3,277 +3,222 @@
 namespace Torgodly\Html2Media\Traits;
 
 use Closure;
-use Filament\Actions\MountableAction;
-use Filament\Support\Enums\Alignment;
-use Filament\Support\Enums\MaxWidth;
-use Filament\Support\Facades\FilamentIcon;
-use Filament\Tables\Actions\Action;
+use Filament\Actions\Action;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\HtmlString;
+use InvalidArgumentException;
 
 /**
  * Trait HasHtml2MediaActionBase
  * @package Torgodly\Html2Media\Traits
  * @mixin Action
  */
-trait  HasHtml2MediaActionBase
+trait HasHtml2MediaActionBase
 {
+    // Core Properties
     protected View|Htmlable|Closure|null $content = null;
     protected bool|Closure $preview = false;
     protected bool|Closure $print = true;
     protected bool|Closure $savePdf = false;
     protected string|Closure $filename = 'document.pdf';
-    protected array|Closure $pagebreak = ['mode' => ['css', 'legacy'], 'after' => 'section'];
-    protected string|Closure $orientation = 'portrait';  // Separate variable for orientation
-    protected string|array|Closure $format = 'a4';  // Separate variable for format
-    protected string|Closure $unit = 'mm';  // Separate variable for unit
-    protected int|Closure $scale = 2;  // Separate variable for scale
-    protected int|Closure|array $margin = 0; // Margin setting,
-    protected bool|Closure $enableLinks = false; // Enable links PDF hyperlinks are automatically added ontop of all anchor tags.
-    protected null|string|Closure $elementId = null;
 
-    public function enableLinks(bool|Closure $enableLinks = true): static
+    // PDF Generation Options
+    protected string|Closure $pageBreakMode = 'none';
+    protected string|Closure $selector = '';
+    protected bool|Closure $enableLinks = true;
+    protected string|array|Closure $format = 'a4';
+    protected string|Closure $orientation = 'portrait';
+    protected array|Closure $margins = ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20];
+    protected string|Closure $overflow = 'paginate';
+    protected bool|Closure $showPageNumbers = true;
+    protected string|Closure $pageNumberPosition = 'bottom-center';
+
+    // --- Fluent Methods for Configuration ---
+
+    public function content(View|Htmlable|Closure|null $content): static
     {
-        $this->enableLinks = $enableLinks;
+        $this->content = $content;
         return $this;
     }
 
-    public function isEnableLinks(): bool
-    {
-        return $this->evaluate($this->enableLinks);
-    }
-
-    public function filename(string|Closure $filename = 'document'): static
+    public function filename(string|Closure $filename): static
     {
         $this->filename = $filename;
         return $this;
     }
 
-    public function getFilename(): string
+    public function pageBreakMode(string|Closure $mode): static
     {
-        // Evaluate the filename (handle Closure if necessary)
-        $filename = $this->evaluate($this->filename);
-
-        // Extract the base name (remove all extensions)
-        $baseName = pathinfo($filename, PATHINFO_FILENAME);
-
-        // Return the cleaned filename with a single .pdf extension
-        return $baseName . '.pdf';
-    }
-
-    public function pagebreak(string|Closure|null $after = 'section', array|Closure|null $mode = ['css', 'legacy'], string|Closure|null $avoid = null): static
-    {
-        $this->pagebreak = ['mode' => $mode, 'after' => $after, ...($avoid !== null ? ['avoid' => $avoid] : [])];
+        // Valid modes: 'none', 'class', 'tag'
+        $this->pageBreakMode = $mode;
         return $this;
     }
 
-    public function getPageBreak(): array
+    public function selector(string|Closure $selector): static
     {
-        return $this->evaluate($this->pagebreak);
+        $this->selector = $selector;
+        return $this;
     }
 
-    public function orientation(string|Closure|null $orientation = 'portrait'): static
+    public function enableLinks(bool|Closure $enable = true): static
     {
+        $this->enableLinks = $enable;
+        return $this;
+    }
+
+    public function format(string|array|Closure $format): static
+    {
+        $this->format = $format;
+        return $this;
+    }
+
+    public function orientation(string|Closure $orientation): static
+    {
+        // Valid orientations: 'portrait', 'landscape'
         $this->orientation = $orientation;
         return $this;
     }
 
-    public function getOrientation(): string
+    /**
+     * Set the PDF margins, similar to CSS shorthand.
+     *
+     * @param mixed ...$margins Can be a single number (all sides), two numbers (top/bottom, left/right),
+     *                          four numbers (top, right, bottom, left), or an associative array.
+     * @return $this
+     */
+    public function margins(...$margins): static
     {
-        return $this->evaluate($this->orientation);
-    }
+        if (count($margins) === 1) {
+            if (is_array($margins[0])) {
+                $this->margins = array_merge($this->evaluate($this->margins), $margins[0]);
+            } elseif (is_numeric($margins[0])) {
+                $m = $margins[0];
+                $this->margins = ['top' => $m, 'right' => $m, 'bottom' => $m, 'left' => $m];
+            } else {
+                throw new InvalidArgumentException('Invalid margin format.');
+            }
+        } elseif (count($margins) === 2) {
+            $this->margins = ['top' => $margins[0], 'right' => $margins[1], 'bottom' => $margins[0], 'left' => $margins[1]];
+        } elseif (count($margins) === 4) {
+            $this->margins = ['top' => $margins[0], 'right' => $margins[1], 'bottom' => $margins[2], 'left' => $margins[3]];
+        }
 
-    public function format(string|array|Closure|null $format = 'a4', string|Closure|null $unit = 'mm'): static
-    {
-        $this->format = $format;
-        $this->unit = $unit;
         return $this;
     }
 
-    public function getFormat(): string|array
+    public function overflow(string|Closure $overflow): static
     {
-        return $this->evaluate($this->format);
-    }
-
-    public function getUnit(): string
-    {
-        return $this->evaluate($this->unit);
-    }
-
-    public
-    function scale(int|Closure|null $scale = 2): static
-    {
-        $this->scale = $scale;
+        // Valid modes: 'paginate', 'cut'
+        $this->overflow = $overflow;
         return $this;
     }
 
-    public
-    function getScale(): int
+    public function showPageNumbers(bool|Closure $show = true): static
     {
-        return $this->evaluate($this->scale);
-    }
-
-
-    public
-    function margin(int|Closure|array|null $margin = 0): static
-    {
-        $this->margin = $margin;
+        $this->showPageNumbers = $show;
         return $this;
     }
 
-    public
-    function getMargin(): int|array
+    public function pageNumberPosition(string|Closure $position): static
     {
-        return $this->evaluate($this->margin);
+        // e.g., 'bottom-center', 'bottom-right', 'top-center', 'top-right'
+        $this->pageNumberPosition = $position;
+        return $this;
     }
 
-    public
-    function print(bool|Closure $print = true): static
+    // --- Action Behavior ---
+
+    public function print(bool|Closure $print = true): static
     {
         $this->print = $print;
-
         return $this;
-    }
-
-    public function isPrint(): bool
-    {
-        return $this->evaluate($this->print);
     }
 
     public function savePdf(bool|Closure $savePdf = true): static
     {
         $this->savePdf = $savePdf;
-
         return $this;
-    }
-
-    public function isSavePdf(): bool
-    {
-        return $this->evaluate($this->savePdf);
     }
 
     public function preview(bool|Closure $preview = true): static
     {
         $this->preview = $preview;
-        $this->modalContent(fn(MountableAction $action): ?Htmlable => $action->evaluate($preview) ? view('html2media::tables.actions.html-2-media-table-action', ['content' => $this->getContent()?->toHtml()]) : null);
+        $this->modalContent(fn(Action $action): ?HtmlString => $action->evaluate($preview)
+            ? new HtmlString($this->getContent()?->toHtml())
+            : null
+        );
         return $this;
     }
 
-    public function isPreview()
-    {
-        return $this->evaluate($this->preview);
-    }
-
-    public function content(View|Htmlable|Closure|null $content = null): static
-    {
-        $this->content = $content;
-
-        return $this;
-    }
+    // --- Getters for Evaluation ---
 
     public function getContent(): ?Htmlable
     {
         return $this->evaluate($this->content);
     }
 
-    public function requiresConfirmation(bool|Closure $condition = true): static
+    public function getFilename(): string
     {
-        $this->modalAlignment(fn(MountableAction $action): ?Alignment => $action->evaluate($condition) ? Alignment::Center : null);
-        $this->modalFooterActionsAlignment(fn(MountableAction $action): ?Alignment => $action->evaluate($condition) ? Alignment::Center : null);
-        $this->modalIcon(fn(MountableAction $action): ?string => $action->evaluate($condition) ? (FilamentIcon::resolve('actions::modal.confirmation') ?? 'heroicon-o-exclamation-triangle') : null);
-        $this->modalHeading ??= fn(MountableAction $action): string|Htmlable|null => $action->evaluate($condition) ? $action->getLabel(true) : null;
-        $this->modalDescription(fn(MountableAction $action): ?string => $action->evaluate($condition) ? __('filament-actions::modal.confirmation') : null);
-        $this->modalSubmitActionLabel(fn(MountableAction $action): ?string => $action->evaluate($condition) ? __('filament-actions::modal.actions.confirm.label') : null);
-        $this->modalWidth(fn(MountableAction $action): ?MaxWidth => $action->evaluate($condition) ? MaxWidth::Medium : null);
-
-
-        return $this;
+        $filename = pathinfo($this->evaluate($this->filename), PATHINFO_FILENAME);
+        return $filename . '.pdf';
     }
 
-    public function getLabel(bool|null $getOriginalLabel = false): string|Htmlable|null
+    // --- Core Action Setup ---
+
+    protected function setUp(): void
     {
-        $label = $this->evaluate($this->label) ?? (string)str($this->getName())
-            ->before('.')
-            ->kebab()
-            ->replace(['-', '_'], ' ')
-            ->ucfirst();
+        parent::setUp();
+        $this->action(fn(Action $action) => !$action->shouldOpenModal() ? $action->getLivewire()->dispatch('triggerPrint', $this->getDispatchOptions()) : null);
 
-        $label = is_string($label) && $this->shouldTranslateLabel
-            ? __($label)
-            : $label;
-
-        $OriginalLabel = $label;
-        $label = new HtmlString($label . view('html2media::tables.actions.html-2-media-table-action', ['content' => $this->getContent()?->toHtml(), 'elementId' => $this->getElementId()]));
-        return $getOriginalLabel ? $OriginalLabel : $label;
-
-    }
-
-
-    public function getElementId(): string
-    {
-        return $this->evaluate($this->elementId) ?? $this->evaluate(fn($record) => $record->id . '-' . $this->name);
-    }
-
-    public function elementId(string|Closure $elementId = null): static
-    {
-        $this->elementId = $elementId;
-        return $this;
+        $this->modalSubmitAction(false);
+        $this->extraModalFooterActions([
+            $this->savePdfAction(),
+            $this->printAction(),
+        ]);
     }
 
     public function savePdfAction(): Action
     {
         return Action::make('SavePdf')
-            ->translateLabel()
-            ->visible(fn() => $this->isSavePdf())
-            ->label('Save as PDF')
-            ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('savePdf')));
+            ->label(__('Save as PDF'))
+            ->visible(fn() => $this->evaluate($this->savePdf))
+            ->action(fn(Action $action) => $action->getLivewire()->dispatch('triggerPrint', $this->getDispatchOptions('download')));
     }
 
     public function printAction(): Action
     {
         return Action::make('Print')
-            ->translateLabel()
-            ->visible(fn() => $this->isPrint())
-            ->label('Print')
-            ->action(fn($record, $livewire) => $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions('print')));
+            ->label(__('Print'))
+            ->visible(fn() => $this->evaluate($this->print))
+            ->action(fn(Action $action) => $action->getLivewire()->dispatch('triggerPrint', $this->getDispatchOptions('print')));
     }
 
-    protected function setUp(): void
+    /**
+     * Consolidates all settings into a single array for the JavaScript front-end.
+     */
+    private function getDispatchOptions(?string $output = null): array
     {
-        parent::setUp();
-        $this->action(fn($record, $livewire) => !$this->shouldOpenModal() ? $livewire->dispatch('triggerPrint', ...$this->getDispatchOptions()) : null);
+        // Determine the primary action if not explicitly provided
+        if ($output === null) {
+            $output = $this->evaluate($this->savePdf) ? 'download' : ($this->evaluate($this->print) ? 'print' : 'iframe');
+        }
 
-        $this->modalSubmitAction(false);
-        $this->extraModalFooterActions([
-
-            $this->savePdfAction(),
-            $this->printAction(),
-
-        ]);
-
-    }
-
-    private function getDispatchOptions(string|null $action = null): array
-    {
         return [
-            'action' => $action ?? ($this->isSavePdf() ? 'savePdf' : ($this->isPrint() ? 'print' : null)),
-            'element' => $this->getElementId(),
-            'filename' => $this->getFilename(),
-            'pagebreak' => [
-                'mode' => $this->getPageBreak(),
+            'element' => $this->getContent()?->toHtml(),
+            'options' => [
+                'pageBreakMode' => $this->evaluate($this->pageBreakMode),
+                'selector' => $this->evaluate($this->selector),
+                'enableLinks' => $this->evaluate($this->enableLinks),
+                'output' => $output,
+                'filename' => $this->getFilename(),
+                'format' => $this->evaluate($this->format),
+                'orientation' => $this->evaluate($this->orientation),
+                'margins' => $this->evaluate($this->margins),
+                'overflow' => $this->evaluate($this->overflow),
+                'showPageNumbers' => $this->evaluate($this->showPageNumbers),
+                'pageNumberPosition' => $this->evaluate($this->pageNumberPosition),
             ],
-            'jsPDF' => [
-                'orientation' => $this->getOrientation(),
-                'format' => $this->getFormat(),
-                'unit' => $this->getUnit(),
-            ],
-            'html2canvas' => [
-                'scale' => $this->getScale(),
-                'useCORS' => true,
-            ],
-            'margin' => $this->getMargin(),
-            'enableLinks' => $this->isEnableLinks(),
         ];
     }
 }
