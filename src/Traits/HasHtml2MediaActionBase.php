@@ -29,7 +29,7 @@ trait HasHtml2MediaActionBase
     protected bool|Closure $enableLinks = true;
     protected string|array|Closure $format = 'a4';
     protected string|Closure $orientation = 'portrait';
-    protected array|Closure $margins = ['top' => 20, 'right' => 20, 'bottom' => 20, 'left' => 20];
+    protected array|Closure $margins = ['top' => 0, 'right' => 0, 'bottom' => 0, 'left' => 0];
     protected string|Closure $overflow = 'paginate';
     protected bool|Closure $showPageNumbers = true;
     protected string|Closure $pageNumberPosition = 'bottom-center';
