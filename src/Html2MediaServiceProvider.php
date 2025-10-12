@@ -14,7 +14,6 @@ class Html2MediaServiceProvider extends PackageServiceProvider
     {
         $package
             ->name('html2media')
-            ->hasViews()
             ->hasAssets();
 
     }
